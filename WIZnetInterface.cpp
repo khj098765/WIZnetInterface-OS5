@@ -45,7 +45,6 @@ int WIZnetInterface::init(uint8_t * mac, const char* ip, const char* mask, const
 {
     dhcp = false;
     //
-    for (int i =0; i < 6; i++) this->mac[i] = mac[i];
     //
     this->ip = str_to_ip(ip);
     strcpy(ip_string, ip);
