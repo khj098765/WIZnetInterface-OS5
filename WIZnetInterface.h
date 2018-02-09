@@ -25,7 +25,7 @@
 
 #define WIZNET_SOCKET_COUNT 4
 
-class WIZnetInterface : public NetworkStack, public EthInterface, public Endpoint
+class WIZnetInterface : public NetworkStack, public EthInterface, public Endpoint, public WIZnet_Chip
 {
 public:
 
@@ -277,6 +277,12 @@ protected:
     int _sock_fd;
     bool _blocking;
     int _timeout;
+    //uint8_t mac[6];
+    uint32_t ip;
+    uint32_t netmask;
+    uint32_t gateway;
+    uint32_t dnsaddr;
+    bool dhcp;
 
 private:
     WIZnet_Chip* eth;
@@ -289,12 +295,7 @@ private:
     char mac_string[20];
     bool ip_set;
     int listen_port;
-    uint8_t mac[6];
-    uint32_t ip;
-    uint32_t netmask;
-    uint32_t gateway;
-    uint32_t dnsaddr;
-    bool dhcp;
+    
 
     virtual void confEndpoint(Endpoint & ep);
     virtual void readEndpoint(Endpoint & ep, uint8_t info[]);

@@ -119,14 +119,14 @@ enum Mode {
     *
     * @return true if connected, false otherwise
     */ 
-    bool setmac();
+    bool setmac(uint8_t *mac);
 
     /*
     * Connect the W7500 WZTOE to the ssid contained in the constructor.
     *
     * @return true if connected, false otherwise
     */ 
-    bool setip();
+    bool setip(uint32_t ip);
 
 
     /*
@@ -149,7 +149,7 @@ enum Mode {
     /*
     * Reset the W7500 WZTOE
     */
-    void reset();
+    void reset(uint8_t *mac);
    
     int wait_readable(int socket, int wait_time_ms, int req_size = 0);
 
@@ -275,8 +275,8 @@ enum Mode {
 
 
 protected:
-    uint8_t mac[6];
-    uint32_t ip;
+    //uint8_t mac[6];
+    //uint32_t ip;
     uint32_t netmask;
     uint32_t gateway;
     uint32_t dnsaddr;

@@ -36,7 +36,7 @@ WIZnetInterface::WIZnetInterface(SPI* spi, PinName cs, PinName reset) :
 int WIZnetInterface::init(uint8_t * mac)
 {
     dhcp = true;
-    eth->reset();
+    eth->reset(mac);
 	
     return 0;
 }
@@ -52,11 +52,11 @@ int WIZnetInterface::init(uint8_t * mac, const char* ip, const char* mask, const
     ip_set = true;
     this->netmask = str_to_ip(mask);
     this->gateway = str_to_ip(gateway);
-    eth->reset();
+    eth->reset(mac);
 
     // @Jul. 8. 2014 add code. should be called to write chip.
-    eth->setmac();
-    eth->setip();
+    eth->setmac(mac);
+    eth->setip(this->ip);
     
     return 0;
 }
@@ -72,7 +72,7 @@ int WIZnetInterface::connect()
         return NSAPI_ERROR_UNSUPPORTED;
     }
     
-    if (eth->setip() == false) return NSAPI_ERROR_NO_ADDRESS;
+    if (eth->setip(this->ip) == false) return NSAPI_ERROR_NO_ADDRESS;
     return 0;
 }
 

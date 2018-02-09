@@ -36,8 +36,8 @@
 #define MDIO            GPIO_Pin_14
 #define MDC             GPIO_Pin_15
 #define GPIO_MDC        GPIOB
-#define PHY_ADDR_IP101G 0x07 
-#define PHY_ADDR        PHY_ADDR_IP101G
+//#define PHY_ADDR_IP101G 0x07 
+//#define PHY_ADDR        PHY_ADDR_IP101G
 #define SVAL            0x2 //right shift val = 2 
 #define PHYREG_CONTROL  0x0 //Control Register address (Contorl basic register)
 #define PHYREG_STATUS   0x1 //Status Register address (Status basic register)
@@ -51,8 +51,8 @@
 #define MDIO            GPIO_Pin_15
 #define MDC             GPIO_Pin_14
 #define GPIO_MDC        GPIOB
-#define PHY_ADDR_IP101G 0x01 
-#define PHY_ADDR        PHY_ADDR_IP101G
+//#define PHY_ADDR_IP101G 0x01 
+//#define PHY_ADDR        PHY_ADDR_IP101G
 #define SVAL            0x2 //right shift val = 2 
 #define PHYREG_CONTROL  0x0 //Control Register address (Contorl basic register)
 #define PHYREG_STATUS   0x1 //Status Register address (Status basic register)
@@ -62,6 +62,12 @@
 #define MDC_WAIT        (1)
 
 #endif
+
+uint32_t PHY_ADDR_IP101G;
+uint32_t PHY_ADDR;
+
+int32_t phy_id(void);
+
 
 void mdio_init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_MDC, uint16_t GPIO_Pin_MDIO);
 void mdio_write(GPIO_TypeDef* GPIOx, uint32_t PhyRegAddr, uint32_t val);
@@ -74,14 +80,14 @@ WIZnet_Chip::WIZnet_Chip()
     inst = this;
 }
 
-bool WIZnet_Chip::setmac()
+bool WIZnet_Chip::setmac(uint8_t *mac)
 {
     reg_wr_mac(SHAR, mac);
     return true;
 }
 
 // Set the IP
-bool WIZnet_Chip::setip()
+bool WIZnet_Chip::setip(uint32_t ip)
 {
     reg_wr<uint32_t>(SIPR, ip);
     reg_wr<uint32_t>(GAR, gateway);
@@ -158,7 +164,7 @@ bool WIZnet_Chip::is_connected(int socket)
     return false;
 }
 // Reset the chip & set the buffer
-void WIZnet_Chip::reset()
+void WIZnet_Chip::reset(uint8_t *mac)
 {
     /* S/W Reset PHY */
     mdio_write(GPIO_MDC, PHYREG_CONTROL, 0x8000);
@@ -429,11 +435,13 @@ void mdio_init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_MDC, uint16_t GPIO_Pin_MDI
 {
     /* Set GPIOs for MDIO and MDC */
     GPIO_InitTypeDef MDIO_InitDef;  
-    HAL_PAD_AFConfig(PAD_PB, GPIO_Pin_MDIO, PAD_AF1);  
-    HAL_PAD_AFConfig(PAD_PB, GPIO_Pin_MDC, PAD_AF1);  
     MDIO_InitDef.GPIO_Pin = GPIO_Pin_MDC | GPIO_Pin_MDIO;
     MDIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
     HAL_GPIO_Init(GPIOx, &MDIO_InitDef);
+    HAL_PAD_AFConfig(PAD_PB, GPIO_Pin_MDIO, PAD_AF1);  
+    HAL_PAD_AFConfig(PAD_PB, GPIO_Pin_MDC, PAD_AF1);  
+
+    PHY_ADDR = (phy_id());
 }
 
 void output_MDIO(GPIO_TypeDef* GPIOx, uint32_t val, uint32_t n)
@@ -520,6 +528,52 @@ void WIZnet_Chip::ethernet_set_link(int speed, int duplex) {
         val = ((CNTL_SPEED&(speed<<11))|(CNTL_DUPLEX&(duplex<<7))); 
     }
     mdio_write(GPIO_MDC, PHYREG_CONTROL, val);
+}
+
+int32_t phy_id(void)
+{
+    uint32_t val;
+    int32_t data;
+    int i=0;
+		while(1) {
+    for(i=0; i<8; i++)
+    {
+        /* 32 Consecutive ones on MDO to establish sync */
+        //printf("mdio read - sync \r\n");
+        output_MDIO(GPIOB, 0xFFFFFFFF, 32);
+
+        /* start code 01, read command (10) */
+        //printf("mdio read - start \r\n");
+        output_MDIO(GPIOB, 0x06, 4);
+
+        /* write PHY address */
+        //printf("mdio read - PHY address \r\n");
+        output_MDIO(GPIOB, i, 5);
+
+        //printf("mdio read - PHY REG address \r\n");
+        output_MDIO(GPIOB, PHYREG_STATUS, 5);
+
+        /* turnaround MDO is tristated */
+        //printf("mdio read - turnaround \r\n");
+        turnaround_MDIO(GPIOB);
+
+        /* Read the data value */
+        //printf("mdio read - read the data value \r\n");
+        data = input_MDIO(GPIOB);
+
+        /* turnaround MDO is tristated */
+        //printf("mdio read - idle \r\n");
+        idle_MDIO(GPIOB);
+				
+         /*For DEBUG*/        
+        //printf("\r\nPHY_ID = %d , STATUS = %x \r\n",i,data);  //right : 0x7869				
+        if((data != 0x0000)&&(data != 0xFFFF)) return i;
+    }
+    //printf("\r\nphy id detect error!!\r\n");
+	}
+    
+   // return 0;
+    
 }
 
    void WIZnet_Chip::reg_rd_mac(uint16_t addr, uint8_t* data) 
