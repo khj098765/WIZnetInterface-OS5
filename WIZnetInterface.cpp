@@ -200,7 +200,7 @@ int WIZnetInterface::socket_open(void **handle, nsapi_protocol_t proto)
     socket->proto = proto;
     socket->connected = false;
     *handle = socket;
-    return 0;
+    return NSAPI_ERROR_OK;
     /*
     g_proto = proto;
 
@@ -219,7 +219,7 @@ int WIZnetInterface::socket_close(void *handle)
 //int WIZnetInterface::wiznet_socket_close(nsapi_stack_t *stack, int _sock_fd)
 {
     struct wiznet_socket *socket = (struct wiznet_socket *)handle;
-    int err = 0;
+    int err = NSAPI_ERROR_OK;
     //_esp.setTimeout(ESP8266_MISC_TIMEOUT);
  
     eth->scmd(socket->id, WIZnet_Chip::CLOSE);
@@ -251,7 +251,7 @@ int WIZnetInterface::socket_bind(void *handle, const SocketAddress &address)
 
     eth->scmd(socket->id, WIZnet_Chip::OPEN);
 
-    return 0;
+    return NSAPI_ERROR_OK;
 
     /*
     listen_port = port;
@@ -291,13 +291,13 @@ int WIZnetInterface::socket_listen(void *handle, int backlog)
     struct wiznet_socket *socket = (struct wiznet_socket *)handle;
 
     if (socket->id < 0) {
-        return -1;
+        return NSAPI_ERROR_DEVICE_ERROR;
     }
     if (backlog != 1) {
-        return -1;
+        return NSAPI_ERROR_IS_CONNECTED;
     }
     eth->scmd(socket->id, WIZnet_Chip::LISTEN);
-    return 0;
+    return NSAPI_ERROR_OK;
     /*
     if (_sock_fd < 0) {
         return -1;
@@ -327,7 +327,7 @@ int WIZnetInterface::socket_connect(void *handle, const SocketAddress &address)
     // add code refer from EthernetInterface.
     socket->connected = true;
 
-    return 0;
+    return NSAPI_ERROR_OK;
 
     /*
     if (_sock_fd < 0) {
@@ -417,7 +417,7 @@ int WIZnetInterface::socket_send(void *handle, const void *data, unsigned length
 
     int size = eth->wait_writeable(socket->id, _blocking ? -1 : _timeout);
     if (size < 0) 
-        return -1;
+        return NSAPI_ERROR_WOULD_BLOCK;
 
     if (size > length) 
         size = length;
@@ -449,7 +449,7 @@ int WIZnetInterface::socket_recv(void *handle, void *data, unsigned length)
 
     int size = eth->wait_readable(socket->id, _blocking ? -1 : _timeout);
     if (size < 0) {
-        return -1;
+        return NSAPI_ERROR_WOULD_BLOCK;
     }
     if (size > length) {
         size = length;
@@ -477,7 +477,7 @@ int WIZnetInterface::socket_sendto(void *handle, const SocketAddress &addr, cons
 
     int size = eth->wait_writeable(socket->id, _blocking ? -1 : _timeout, length-1);
     if (size < 0) {
-        return -1;
+        return NSAPI_ERROR_WOULD_BLOCK;
     }
 
     int ret = eth->send(socket->id, data, length);
@@ -504,21 +504,21 @@ int WIZnetInterface::socket_recvfrom(void *handle, SocketAddress *address, void 
     uint8_t info[8];
     int size = eth->wait_readable(socket->id, _blocking ? -1 : _timeout, sizeof(info));
     if (size < 0) {
-        return -1;
+        return NSAPI_ERROR_WOULD_BLOCK;
     }
     eth->recv(socket->id, (char*)info, sizeof(info));
     readEndpoint(remote, info);
     int udp_size = info[6]<<8|info[7];
     //TEST_ASSERT(udp_size <= (size-sizeof(info)));
     if (udp_size > (size-sizeof(info))) {
-        return -1;
+        return NSAPI_ERROR_WOULD_BLOCK;
     }
 
     // Perform Length check here to prevent buffer overrun 
     // fixed by Sean Newton (https://developer.mbed.org/users/SeanNewton/) 
     if (udp_size > length) {
         //printf("udp_size: %d\n",udp_size);
-        return -1;
+        return NSAPI_ERROR_WOULD_BLOCK;
     }
     return eth->recv(socket->id, data, udp_size);
     /*
